@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Block commits that add data identifying a real environment.
+# Obvious dummies are allowed: UUIDs made of one repeated hex digit,
+# and the MACs listed in ALLOWED_MACS.
+# Extra site-name patterns can go in .githooks/denylist.local.txt (git-ignored, one regex per line).
+set -u
+ALLOWED_MACS="001122334455 001122334466 aabbccddeeff"
+
+added=$(git diff --cached --no-color -U0 --diff-filter=ACM -- . ':(exclude).githooks/pre-commit' | grep -E '^\+' | grep -vE '^\+\+\+ ')
+[ -z "$added" ] && exit 0
+
+fail=0
+report() { echo "pre-commit: BLOCKED ($1): $2" >&2; fail=1; }
+
+# 1. UUIDs (allow dummy UUIDs made of a single repeated hex digit)
+while IFS= read -r m; do
+  [ -z "$m" ] && continue
+  hex=${m//-/}
+  if [ -n "${hex//${hex:0:1}/}" ]; then report "UUID" "$m"; fi
+done < <(printf '%s\n' "$added" | grep -oiE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
+
+# 2. 12 consecutive hex digits (MAC address); UUID tails are covered by check 1
+while IFS= read -r m; do
+  [ -z "$m" ] && continue
+  lower=$(printf '%s' "$m" | tr 'A-F' 'a-f')
+  case " $ALLOWED_MACS " in *" $lower "*) continue ;; esac
+  if [ -z "${lower//${lower:0:1}/}" ]; then continue; fi
+  report "MAC-like 12 hex" "$m"
+done < <(printf '%s\n' "$added" | sed -E 's/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}//g' | grep -oiE '(^|[^0-9a-zA-Z])[0-9a-f]{12}([^0-9a-zA-Z]|$)' | grep -oiE '[0-9a-f]{12}')
+
+# 3. Apps Script deployment URLs
+# (placeholders such as .../macros/s/<DEPLOYMENT_ID>/exec are fine; a real ID is 20+ chars)
+printf '%s\n' "$added" | grep -qE 'script\.google\.com/macros/s/[A-Za-z0-9_-]{20,}' && report "GAS URL" "script.google.com/macros/s/<real id>"
+printf '%s\n' "$added" | grep -qE 'script\.googleusercontent\.com' && report "GAS URL" "script.googleusercontent.com"
+
+# 4. Spreadsheet IDs
+printf '%s\n' "$added" | grep -qE 'spreadsheets/d/[A-Za-z0-9_-]{20,}' && report "spreadsheet ID" "spreadsheets/d/..."
+
+# 5. Mist API tokens: long alnum strings on lines mentioning api.mist.com / Token / Authorization
+if printf '%s\n' "$added" | grep -iE 'api[a-z0-9.]*\.mist\.com|authorization|token' | grep -qE '[A-Za-z0-9]{30,}'; then
+  report "token-like string" "long alphanumeric next to api.mist.com/Token/Authorization"
+fi
+
+# 6. SHARED_KEY must stay a placeholder
+if printf '%s\n' "$added" | grep -E "SHARED_KEY *= *['\"]" | grep -vqE "CHANGE_ME"; then
+  report "SHARED_KEY" "value is not CHANGE_ME"
+fi
+
+# 7. Local denylist (site names etc.)
+deny="$(git rev-parse --show-toplevel)/.githooks/denylist.local.txt"
+if [ -f "$deny" ]; then
+  while IFS= read -r pat; do
+    [ -z "$pat" ] && continue
+    printf '%s\n' "$added" | grep -qiE -- "$pat" && report "denylist" "$pat"
+  done < "$deny"
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo "pre-commit: commit aborted. Replace real values with dummies." >&2
+  exit 1
+fi
+exit 0
