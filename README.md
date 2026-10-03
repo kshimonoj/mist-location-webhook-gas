@@ -62,12 +62,22 @@ Mist sends location data for each client roughly **every 60 seconds**. In practi
    https://script.google.com/macros/s/<DEPLOYMENT_ID>/exec?key=<SHARED_KEY>
    ```
 
-   Select the location topics you need (see [Supported topics](#supported-topics)).
+   In the *Add Webhook* dialog, enter the Target URL and select the location topics you need (see [Supported topics](#supported-topics)). The screenshot below shows the dialog with only the topics for Wi-Fi client location enabled:
+
+   ![Add Webhook dialog with the location topics selected](docs/images/webhook-settings.png)
+
 7. Check that rows appear in the `MistWebhookRaw` sheet.
+
+### Choosing topics
+
+Enable only the topics you need. Every enabled topic adds incoming requests, and each request consumes Apps Script execution-time quota.
+
+- To watch the location of Wi-Fi devices, `Connected`, `Unconnected`, `Location Zone` and `Proximity Zone` are enough.
+- Leave `Named Assets` (BLE tags) and `SDK Clients` off unless you need them.
 
 ### Multiple sites
 
-One deployment serves every site. Create a webhook in each site and append `&label=` with a human-readable name:
+Location webhooks are created under **Site Configuration**, not at the Organization level. To receive from several sites you need one webhook per site. The Target URL can be the same for all of them (one deployment serves every site); append `&label=` with a human-readable name to tell the sites apart:
 
 ```
 https://script.google.com/macros/s/<DEPLOYMENT_ID>/exec?key=<SHARED_KEY>&label=SiteA

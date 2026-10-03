@@ -62,12 +62,22 @@ Mist(Site Webhook) --HTTP POST--> Apps Script ウェブアプリ --行を追記-
    https://script.google.com/macros/s/<DEPLOYMENT_ID>/exec?key=<SHARED_KEY>
    ```
 
-   必要な Location 系トピックを選ぶ(「対応トピック」を参照)。
+   *Add Webhook* ダイアログで Target URL を入力し、必要な Location 系トピックを選ぶ(「対応トピック」を参照)。下のスクリーンショットは、Wi-Fi 端末の位置に必要なトピックだけを有効にした状態:
+
+   ![Add Webhook ダイアログ(Location 系トピックを選択した状態)](docs/images/webhook-settings.png)
+
 7. `MistWebhookRaw` シートに行が追加されることを確認する。
+
+### トピックの絞り込み
+
+用途に必要なトピックだけを有効にする。有効にしたトピックの分だけ受信数が増え、受信1回ごとに Apps Script の実行時間クォータを消費する。
+
+- Wi-Fi 端末の位置を見るのが目的なら、`Connected` / `Unconnected` / `Location Zone` / `Proximity Zone` で足りる。
+- BLE タグ(`Named Assets`)や `SDK Clients` は、不要なら外しておく。
 
 ### 複数サイトの扱い
 
-デプロイは1つでよい。各サイトで Webhook を作り、Target URL に `&label=` と人間が読める名前を付ける:
+Location 系の Webhook は Organization ではなく **Site Configuration** 配下に作成する。複数サイトから受けたい場合は、サイトの数だけ Webhook が必要になる。Target URL はすべて同じでよい(デプロイは1つで全サイトを受けられる)ので、`&label=` に人間が読める名前を付けて区別する:
 
 ```
 https://script.google.com/macros/s/<DEPLOYMENT_ID>/exec?key=<SHARED_KEY>&label=SiteA
