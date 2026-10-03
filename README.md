@@ -10,7 +10,7 @@ It is meant for two things: **inspecting what a location payload actually contai
 Mist (site webhook) --HTTP POST--> Apps Script web app --append rows--> Google Sheet
 ```
 
-## Supported topics
+## Supported topic examples
 
 | Topic | Mist portal setting (Webhooks → Topics) |
 |---|---|
