@@ -10,7 +10,7 @@ English version: [README.md](README.md)
 Mist(Site Webhook) --HTTP POST--> Apps Script ウェブアプリ --行を追記--> Google Sheets
 ```
 
-## 対応トピック
+## 対応トピックの例
 
 | トピック | Mist portal の設定(Webhooks → Topics) |
 |---|---|
